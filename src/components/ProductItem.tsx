@@ -9,12 +9,8 @@ import { AddProductCount } from "./AddProductCount";
 export const ProductItem: React.FC<{ item: Product }> = ({ item }) => {
     const [menuVisible, setMenuVisible] = useState(false);
     const [modalVisible, setModalVisible] = useState(false);
-    const [count, setCount] = useState('');
-    const [description, setDescription] = useState('');
-    const dispatch = useDispatch();
-  
-    const handleSave = () => {
-      dispatch(addStockRecord({ id: Date.now().toString(), product: item, count, description }));
+
+    const closeModal = () => {
       setModalVisible(false);
     };
   
@@ -26,7 +22,7 @@ export const ProductItem: React.FC<{ item: Product }> = ({ item }) => {
             <Menu
               visible={menuVisible}
               onDismiss={() => setMenuVisible(false)}
-              anchor={<Appbar.Action icon="dots-vertical" onPress={() => setMenuVisible(true)} />}
+              anchor={<Appbar.Action icon="dots-vertical" onPress={() => {setMenuVisible(!menuVisible); console.log(item.code +":"+ menuVisible)}} />}
             >
               <Menu.Item onPress={() => setModalVisible(true)} title="Sayım Fişi Oluştur" />
             </Menu>
@@ -39,7 +35,7 @@ export const ProductItem: React.FC<{ item: Product }> = ({ item }) => {
         </Card.Content>
         <Portal>
           <Modal visible={modalVisible} onDismiss={() => setModalVisible(false)} contentContainerStyle={styles.modalContainer}>
-            <AddProductCount product={item}  />
+            <AddProductCount product={item} closeModal={closeModal}   />
           </Modal>
         </Portal>
       </Card>
