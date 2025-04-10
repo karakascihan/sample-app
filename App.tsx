@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { createDrawerNavigator } from '@react-navigation/drawer';
 import { NavigationContainer } from '@react-navigation/native';
@@ -7,6 +7,10 @@ import store from './src/redux/store';
 import { PaperProvider } from 'react-native-paper';
 import ProductsScreen from './src/screens/ProductListScreen';
 import StockRecordsScreen from './src/screens/StockRecordsScreen';
+import AddMontajScreen from './src/screens/AddMontajScreen';
+import ListScreen from './src/screens/ListScreen';
+import * as ScreenOrientation from 'expo-screen-orientation';
+
 
 const Drawer = createDrawerNavigator();
 
@@ -19,6 +23,12 @@ function HomeScreen() {
 }
 
 export default function App() {
+  useEffect(() => {
+    const unlockScreenOerientation = async () => {
+      await ScreenOrientation.unlockAsync()
+    }
+    unlockScreenOerientation()
+  }, [])
   return (
     <Provider store={store}>
       <PaperProvider>
@@ -27,6 +37,8 @@ export default function App() {
         <Drawer.Screen name="Ana Sayfa" component={HomeScreen} />
         <Drawer.Screen name="Ürünler"   component={ProductsScreen} />
         <Drawer.Screen name="Sayım Fişleri"   component={StockRecordsScreen} />
+        <Drawer.Screen name="duzenle"   component={AddMontajScreen} />
+        <Drawer.Screen name="Montajlar"   component={ListScreen} />
       </Drawer.Navigator>
     </NavigationContainer>
     </PaperProvider>
