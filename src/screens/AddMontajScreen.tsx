@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { ScrollView, View } from 'react-native';
+import { Alert, ScrollView, View } from 'react-native';
 import { TextInput, Button, RadioButton, Text } from 'react-native-paper';
 import { addDoc, collection, doc, getDoc, getFirestore } from 'firebase/firestore';
 import { app } from '../firebase/firebaseConfig';
@@ -29,7 +29,7 @@ const AddMontajScreen: React.FC = (props: Props) => {
     sorun: '',
     yonetici: '',
     atananlar: '',
-    durum: 'açık',
+    durum: 'açık'
   });
 
   const handleChange = (key: string, value: string) => {
@@ -53,7 +53,7 @@ const AddMontajScreen: React.FC = (props: Props) => {
       };
       console.log(data);
       await addDoc(collection(db, 'montajlar'), data);
-      alert('Kayıt başarıyla eklendi!');
+      Alert.alert('Başarılı','Kayıt başarıyla eklendi!');
       setForm({
         projeNo: '',
         baslik: '',
@@ -80,19 +80,13 @@ const AddMontajScreen: React.FC = (props: Props) => {
       <TextInput label="Bitiş Tarihi" value={form.bitis} onChangeText={(v) => handleChange('bitis', v)} placeholder="12 Nisan 2025" />
       <TextInput label="Uygunsuzluk" keyboardType="numeric" value={form.uygunsuzluk} onChangeText={(v) => handleChange('uygunsuzluk', v)} />
       <TextInput label="Sorun" keyboardType="numeric" value={form.sorun} onChangeText={(v) => handleChange('sorun', v)} />
-      <TextInput label="Proje Yöneticisi Avatar URL" value={form.yonetici} onChangeText={(v) => handleChange('yonetici', v)} />
-      <TextInput
-        label="Atananlar Avatar URL’leri (virgülle ayır)"
-        value={form.atananlar}
-        onChangeText={(v) => handleChange('atananlar', v)}
-        multiline
-      />
 
       <View style={{ marginVertical: 12 }}>
         <Text style={{ marginBottom: 4 }}>Durum:</Text>
         <RadioButton.Group onValueChange={(v) => handleChange('durum', v)} value={form.durum}>
           <RadioButton.Item label="Açık" value="açık" />
           <RadioButton.Item label="Kapalı" value="kapalı" />
+          <RadioButton.Item label="Beklemede" value="beklemede" />
         </RadioButton.Group>
       </View>
 

@@ -16,3 +16,9 @@
     count: string;
     description: string;
   }
+  export interface FileItem  {
+    id: string;
+    name: string;
+    base64Data: string;
+    mimeType: string;
+  };

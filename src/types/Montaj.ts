@@ -1,5 +1,4 @@
 export interface Montaj {
-    id: string;
     projeNo: string;
     baslik: string;
     parcaNo: string;
@@ -9,6 +8,7 @@ export interface Montaj {
     sorun: number;
     yonetici: string;
     atananlar: string[];
-    durum: 'açık' | 'kapalı';
+    durum: 'açık' | 'kapalı' |"beklemede";
+    fileBase64?:{name:string,data:string,mimeType:string}
   }
   
