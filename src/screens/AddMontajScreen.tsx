@@ -3,67 +3,63 @@ import { Alert, ScrollView, View } from 'react-native';
 import { TextInput, Button, RadioButton, Text } from 'react-native-paper';
 import { addDoc, collection, doc, getDoc, getFirestore } from 'firebase/firestore';
 import { app } from '../firebase/firebaseConfig';
+import DateTimePicker from '@react-native-community/datetimepicker';
+import { Montaj } from '../types/Montaj';
 
 interface Props {
   id?: string
 }
 const AddMontajScreen: React.FC = (props: Props) => {
+  const [showStartPicker, setShowStartPicker] = useState<boolean>(false);
+  const [showEndPicker, setShowEndPicker] = useState<boolean>(false);
   
   const db = getFirestore(app);
-  const getDocumentById = async()=>{
-    const docRef = doc(db, "montajlar", props.id??"");
+  const getDocumentById = async () => {
+    const docRef = doc(db, "montajlar", props.id ?? "");
     const docSnap = await getDoc(docRef);
     console.log(docSnap);
   }
   useEffect(() => {
-  
+
   }, [])
 
-  const [form, setForm] = useState({
+  const [form, setForm] = useState<Montaj>({
     projeNo: '',
     baslik: '',
     parcaNo: '',
-    baslangic: '',
-    bitis: '',
-    uygunsuzluk: '',
-    sorun: '',
+    baslangic: new Date(),
+    bitis: new Date(),
+    uygunsuzluk: [],
+    sorun: [],
     yonetici: '',
-    atananlar: '',
+    atananlar: [],
     durum: 'açık'
   });
 
-  const handleChange = (key: string, value: string) => {
+  const handleChange = (key: string, value: any) => {
     setForm((prev) => ({ ...prev, [key]: value }));
   };
 
   const handleSave = async () => {
     try {
-
-
-      const atananlarArray = form.atananlar
-        .split(',')
-        .map((url) => url.trim())
-        .filter(Boolean);
-
       const data = {
         ...form,
-        uygunsuzluk: parseInt(form.uygunsuzluk),
-        sorun: parseInt(form.sorun),
-        atananlar: atananlarArray,
+        uygunsuzluk: form.uygunsuzluk,
+        sorun: form.sorun
       };
       console.log(data);
       await addDoc(collection(db, 'montajlar'), data);
-      Alert.alert('Başarılı','Kayıt başarıyla eklendi!');
+      Alert.alert('Başarılı', 'Kayıt başarıyla eklendi!');
       setForm({
         projeNo: '',
         baslik: '',
         parcaNo: '',
-        baslangic: '',
-        bitis: '',
-        uygunsuzluk: '',
-        sorun: '',
+        baslangic: new Date(),
+        bitis: new Date(),
+        uygunsuzluk: [],
+        sorun: [],
         yonetici: '',
-        atananlar: '',
+        atananlar: [],
         durum: 'açık',
       });
     } catch (error) {
@@ -76,10 +72,18 @@ const AddMontajScreen: React.FC = (props: Props) => {
       <TextInput label="Proje No" value={form.projeNo} onChangeText={(v) => handleChange('projeNo', v)} />
       <TextInput label="Başlık" value={form.baslik} onChangeText={(v) => handleChange('baslik', v)} />
       <TextInput label="Parça No" value={form.parcaNo} onChangeText={(v) => handleChange('parcaNo', v)} />
-      <TextInput label="Başlangıç Tarihi" value={form.baslangic} onChangeText={(v) => handleChange('baslangic', v)} placeholder="12 Şubat 2025" />
-      <TextInput label="Bitiş Tarihi" value={form.bitis} onChangeText={(v) => handleChange('bitis', v)} placeholder="12 Nisan 2025" />
-      <TextInput label="Uygunsuzluk" keyboardType="numeric" value={form.uygunsuzluk} onChangeText={(v) => handleChange('uygunsuzluk', v)} />
-      <TextInput label="Sorun" keyboardType="numeric" value={form.sorun} onChangeText={(v) => handleChange('sorun', v)} />
+      <TextInput label="Başlangıç Tarihi" value={form.baslangic.toLocaleDateString()} readOnly right={<TextInput.Icon onPress={() => setShowStartPicker(true)} icon="eye" />}  placeholder="12 Şubat 2025" />
+      {
+        showStartPicker?
+        <DateTimePicker value={form.baslangic} onChange={(v, d) =>{ handleChange('baslangic', d); setShowStartPicker(false);}} /> :null
+      }
+      {
+        showEndPicker ?
+        <DateTimePicker value={form.bitis} onChange={(v, d) => {handleChange('bitis', d); setShowEndPicker(false);}} /> :null
+      }
+      <TextInput label="Bitiş Tarihi" value={form.bitis.toLocaleDateString()} readOnly right={<TextInput.Icon onPress={() => setShowEndPicker(true)} icon="eye" />}placeholder="12 Nisan 2025" />
+      <TextInput label="Uygunsuzluk" keyboardType="numeric" value={form.uygunsuzluk.toString()} onChangeText={(v) => handleChange('uygunsuzluk', v)} />
+      <TextInput label="Sorun" keyboardType="numeric" value={form.sorun.toString()} onChangeText={(v) => handleChange('sorun', v)} />
 
       <View style={{ marginVertical: 12 }}>
         <Text style={{ marginBottom: 4 }}>Durum:</Text>

@@ -1,28 +1,36 @@
 // 📁 screens/ListScreen.tsx
 import React, { useEffect, useState } from 'react';
 import { View, ScrollView, useWindowDimensions, Modal, Alert } from 'react-native';
-import { Card, Text, Button, DataTable, TextInput, IconButton, MD3Colors, Checkbox } from 'react-native-paper';
+import { Card, Text, Button, DataTable, TextInput, IconButton, MD3Colors, Checkbox, Badge } from 'react-native-paper';
 import { getFirestore, collection, getDocs, deleteDoc, doc, addDoc, updateDoc } from 'firebase/firestore';
 import { app, storage } from '../firebase/firebaseConfig';
 import { useFocusEffect } from '@react-navigation/native';
 import * as FileSystem from "expo-file-system";
-import * as mime from "react-native-mime-types";
 import * as DocumentPicker from "expo-document-picker";
 import WebView from 'react-native-webview';
+import moment from 'moment';
 import { FileItem } from '../types/Product';
+import { Montaj } from '../types/Montaj';
 
 
 const db = getFirestore(app);
 const ListScreen: React.FC = () => {
   const { width } = useWindowDimensions();
-  const [montajlar, setMontajlar] = useState<any[]>([]);
+  const [montajlar, setMontajlar] = useState<Montaj[]>([]);
   const [file, setFile] = useState<FileItem>();
   const [fileVisible, setFileVisible] = useState<boolean>(false);
+  const [editModalVisible, setEditModalVisible] = useState(false);
+  const [editMontaj, setEditMontaj] = useState<any>(null);
+  const [editList, setEditList] = useState<any[]>([]);
+  const [teknisyenAdi, setTeknisyenAdi] = useState('');
+  const [aciklama, setAciklama] = useState('');
+  const [currentEditField, setCurrentEditField] = useState<'sorun' | 'uygunsuzluk' | null>(null);
+  const [editIndex, setEditIndex] = useState<number | null>(null); // düzenlenecek satırın index'i
 
   const fetchData = async () => {
     const snapshot = await getDocs(collection(db, 'montajlar'));
     const data = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
-    setMontajlar(data);
+    setMontajlar(data as Montaj[]);
   };
   const handleDelete = async (id: string) => {
     Alert.alert(
@@ -36,16 +44,16 @@ const ListScreen: React.FC = () => {
         },
         {
           text: "Evet",
-          onPress:async () => {
+          onPress: async () => {
             await deleteDoc(doc(db, 'montajlar', id));
             fetchData();
           },
         },
       ],
-      { cancelable: true } 
+      { cancelable: true }
     );
 
-  
+
   };
   useFocusEffect(
     React.useCallback(() => {
@@ -183,7 +191,7 @@ const ListScreen: React.FC = () => {
     }
     return result;
   };
-  const pickDocument = async (montaj:any) => {
+  const pickDocument = async (montaj: any) => {
     const result = await DocumentPicker.getDocumentAsync({ copyToCacheDirectory: true });
     if (result.canceled !== true) {
       try {
@@ -194,11 +202,11 @@ const ListScreen: React.FC = () => {
           encoding: FileSystem.EncodingType.Base64,
         });
         // montaj.fileBase64={name:fileName,data:base64Data,mimeType:mimeType}
-        await updateDoc(doc(db,"montajlar",montaj.id), {base64Data:{name:fileName,data:base64Data,mimeType:mimeType}}
-     );
+        await updateDoc(doc(db, "montajlar", montaj.id), { fileBase64: { name: fileName, data: base64Data, mimeType: mimeType } }
+        );
 
-     await  fetchData();
-     Alert.alert("Başarılı", "Dosya Yükleme İşlemi Başarılı");
+        await fetchData();
+        Alert.alert("Başarılı", "Dosya Yükleme İşlemi Başarılı");
 
       } catch (error: any) {
         Alert.alert("Dosya Yükleme Hatası", error.message);
@@ -206,25 +214,8 @@ const ListScreen: React.FC = () => {
 
     }
   }
-  const [sortColumn, setSortColumn] = useState<string>("projeNo");
-  const [sortAscending, setSortAscending] = useState(true);
-
-  const sortedData = [...montajlar].sort((a, b) => {
-    if (a[sortColumn] < b[sortColumn]) return sortAscending ? -1 : 1;
-    if (a[sortColumn] > b[sortColumn]) return sortAscending ? 1 : -1;
-    return 0;
-  });
-
-  const handleSort = (column:string) => {
-    if (sortColumn === column) {
-      setSortAscending(!sortAscending);
-    } else {
-      setSortColumn(column);
-      setSortAscending(true);
-    }
-  };
   return (
-    <ScrollView contentContainerStyle={{ padding: 16 }}  horizontal>
+    <ScrollView contentContainerStyle={{ padding: 16 }} horizontal>
       <View style={{ flexDirection: width > 768 ? 'row' : 'column', flexWrap: 'wrap', justifyContent: 'space-between' }}>
         <Modal visible={fileVisible} animationType='slide' transparent onRequestClose={() => setFileVisible(false)} onDismiss={() => setFileVisible(false)}>
           <View style={{ flex: 1 }}>
@@ -244,70 +235,241 @@ const ListScreen: React.FC = () => {
             />
           </View>
         </Modal>
-
         <DataTable>
           <DataTable.Header>
-            <DataTable.Title  style={{width:100}}>#</DataTable.Title>
-            <DataTable.Title sortDirection={sortColumn === "projeNo" ? (sortAscending ? "ascending" : "descending") : undefined}
-            onPress={() => handleSort("projeNo")}  style={{width:100}}>Proje No</DataTable.Title>
-            <DataTable.Title sortDirection={sortColumn === "baslik" ? (sortAscending ? "ascending" : "descending") : undefined}
-            onPress={() => handleSort("baslik")}  style={{width:100}}>Başlık</DataTable.Title>
-            <DataTable.Title  style={{width:200}}>Parça No</DataTable.Title>
-            <DataTable.Title style={{width:100}}>Başlangıç Tarihi</DataTable.Title>
-            <DataTable.Title style={{width:100}} >Bitiş Tarihi</DataTable.Title>
-            <DataTable.Title style={{width:100}} >Uygunsuzluk</DataTable.Title>
-            <DataTable.Title style={{width:100}} >Sorun</DataTable.Title>
-            <DataTable.Title style={{width:100}} >Proje Yöneticisi</DataTable.Title>
-            <DataTable.Title style={{width:100}} >Atananlar</DataTable.Title>
-            <DataTable.Title style={{width:100}} >Durumu</DataTable.Title>
-            <DataTable.Title style={{width:100}} >Kalan Süre</DataTable.Title>
-            <DataTable.Title style={{width:200}} >İşlemler</DataTable.Title>
+            <DataTable.Title style={{ width: 100, justifyContent: 'center' }}>
+              <Text style={{ fontWeight: 'bold', fontSize: 16, textAlign: 'center' }}>#</Text>
+            </DataTable.Title>
+            <DataTable.Title
+              style={{ width: 100, justifyContent: 'center' }}
+            >
+              <Text style={{ fontWeight: 'bold', fontSize: 16, textAlign: 'center' }}>Proje No</Text>
+            </DataTable.Title>
+            <DataTable.Title style={{ width: 200, justifyContent: 'center' }}>
+              <Text style={{ fontWeight: 'bold', fontSize: 16, textAlign: 'center' }}>Başlık</Text>
+            </DataTable.Title>
+            <DataTable.Title style={{ width: 200, justifyContent: 'center' }}>
+              <Text style={{ fontWeight: 'bold', fontSize: 16, textAlign: 'center' }}>Parça No</Text>
+            </DataTable.Title>
+            <DataTable.Title style={{ width: 150, justifyContent: 'center' }}>
+              <Text style={{ fontWeight: 'bold', fontSize: 16, textAlign: 'center' }}>Başlangıç</Text>
+            </DataTable.Title>
+            <DataTable.Title style={{ width: 150, justifyContent: 'center' }}>
+              <Text style={{ fontWeight: 'bold', fontSize: 16, textAlign: 'center' }}>Bitiş</Text>
+            </DataTable.Title>
+            <DataTable.Title style={{ width: 150, justifyContent: 'center' }}>
+              <Text style={{ fontWeight: 'bold', fontSize: 16, textAlign: 'center' }}>Kalan Süre</Text>
+            </DataTable.Title>
+            <DataTable.Title style={{ width: 150, justifyContent: 'center' }}>
+              <Text style={{ fontWeight: 'bold', fontSize: 16, textAlign: 'center' }}>Sorun</Text>
+            </DataTable.Title>
+            <DataTable.Title style={{ width: 150, justifyContent: 'center' }}>
+              <Text style={{ fontWeight: 'bold', fontSize: 16, textAlign: 'center' }}>Uygunsuzluk</Text>
+            </DataTable.Title>
+          
+            <DataTable.Title style={{ width: 150, justifyContent: 'center' }}>
+              <Text style={{ fontWeight: 'bold', fontSize: 16, textAlign: 'center' }}>Proje Yöneticisi</Text>
+            </DataTable.Title>
+            <DataTable.Title style={{ width: 150, justifyContent: 'center' }}>
+              <Text style={{ fontWeight: 'bold', fontSize: 16, textAlign: 'center' }}>Atananlar</Text>
+            </DataTable.Title>
+            <DataTable.Title style={{ width: 150, justifyContent: 'center' }}>
+              <Text style={{ fontWeight: 'bold', fontSize: 16, textAlign: 'center' }}>Durumu</Text>
+            </DataTable.Title>
+            <DataTable.Title style={{ width: 200, justifyContent: 'center' }}>
+              <Text style={{ fontWeight: 'bold', fontSize: 16, textAlign: 'center' }}>İşlemler</Text>
+            </DataTable.Title>
           </DataTable.Header>
-
-          {montajlar.map((item: any,index:number) => (
+          {montajlar.map((item: Montaj, index: number) => (
             <DataTable.Row key={index}>
-              <DataTable.Cell style={{width:100}}>{index+1}</DataTable.Cell>
-              <DataTable.Cell style={{width:100}}>{item.projeNo}</DataTable.Cell>
-              <DataTable.Cell style={{width:200}}>{item.baslik}</DataTable.Cell>
-              <DataTable.Cell style={{width:200}}>{item.parcaNo}</DataTable.Cell>
-              <DataTable.Cell style={{width:100}}>{item.baslangic}</DataTable.Cell>
-              <DataTable.Cell style={{width:100}}>{item.bitis}</DataTable.Cell>
-              <DataTable.Cell style={{width:100}}>{item.uygunsuzluk}</DataTable.Cell>
-              <DataTable.Cell style={{width:100}}>{item.sorun}</DataTable.Cell>
-              <DataTable.Cell style={{width:100}}>{item.uygunsuzluk}</DataTable.Cell>
-              <DataTable.Cell style={{width:100}}>{item.yonetici}</DataTable.Cell>
-              <DataTable.Cell style={{width:100}}>{item.atananlar}</DataTable.Cell>
-              <DataTable.Cell style={{width:100}}>{item.durum}</DataTable.Cell>
-              <DataTable.Cell style={{width:100}}>{""}</DataTable.Cell>
-              <DataTable.Cell style={{width:200,flex:1,justifyContent:'space-between'}}>
-                <IconButton
-                  icon="delete"
-                  iconColor={MD3Colors.error50}
-                  size={20}
-                  onPress={() => handleDelete(item.id)}
-                />
-                <IconButton
-                  icon="update"
-                  iconColor={MD3Colors.error50}
-                  size={20}
-                />
-                <IconButton
-                  icon="upload"
-                  iconColor={MD3Colors.error50}
-                  size={20}
-                  onPress={async () => await pickDocument(item)}
-                />
+              <DataTable.Cell style={{ width: 100, justifyContent: 'center' }}>{index + 1}</DataTable.Cell>
+              <DataTable.Cell style={{ width: 100, justifyContent: 'center' }}>{item.projeNo}</DataTable.Cell>
+              <DataTable.Cell style={{ width: 200, justifyContent: 'center' }}>{item.baslik}</DataTable.Cell>
+              <DataTable.Cell style={{ width: 200, justifyContent: 'center' }}>{item.parcaNo}</DataTable.Cell>
+              <DataTable.Cell style={{ width: 150, justifyContent: 'center' }}>{item.baslangic.toDate().toLocaleDateString()}</DataTable.Cell>
+              <DataTable.Cell style={{ width: 150, justifyContent: 'center' }}>{item.bitis.toDate().toLocaleDateString()}</DataTable.Cell>
+              <DataTable.Cell style={{ width: 150, justifyContent: 'center' }}>
+                {(() => {
+                  const today = moment();
+                  const endDate = moment(item.bitis.toDate(), "YYYY-MM-DD"); // Gerekirse formatı değiştir
+                  const diff = endDate.diff(today, 'days');
+
+                  if (diff < 0) {
+                    return <Text style={{ color: 'red', fontWeight: 'bold' }}>Süre Doldu</Text>;
+                  } else if (diff === 0) {
+                    return <Text style={{ color: 'orange', fontWeight: 'bold' }}>Son Gün</Text>;
+                  } else if (diff <= 3) {
+                    return <Text style={{ color: 'orange', fontWeight: 'bold' }}>{diff} gün kaldı</Text>;
+                  } else {
+                    return <Text style={{ color: 'green', fontWeight: 'bold' }}>{diff} gün kaldı</Text>;
+                  }
+                })()}
+              </DataTable.Cell>
+              <DataTable.Cell style={{  width: 150,justifyContent: 'center' }}>
+                <View style={{ alignItems: 'center' }}>
+                  <IconButton
+                    icon="alert-circle-outline"
+                    size={20}
+                    onPress={() => {
+                      setCurrentEditField('sorun');
+                      setEditMontaj(item);
+                      setEditList(item.sorun || []);
+                      setEditModalVisible(true);
+                    }}
+                  />
+                  <Badge
+                    style={{ position: 'absolute', top: 2, right: 2 }}
+                    size={16}
+                  >
+                    {(item.sorun?.length || 0).toString()}
+                  </Badge>
+                </View>
+              </DataTable.Cell>
+              <DataTable.Cell style={{  width: 150,justifyContent: 'center' }}>
+                <View style={{ alignItems: 'center' }}>
+                  <IconButton
+                    icon="alert-octagon-outline"
+                    size={20}
+                    onPress={() => {
+                      setCurrentEditField('uygunsuzluk');
+                      setEditMontaj(item);
+                      setEditList(item.uygunsuzluk || []);
+                      setEditModalVisible(true);
+                    }}
+                  />
+                  <Badge
+                    style={{ position: 'absolute', top: 2, right: 2 }}
+                    size={16}
+                  >
+                    {(item.uygunsuzluk?.length || 0).toString()}
+                  </Badge>
+                </View>
+              </DataTable.Cell>
+              <DataTable.Cell style={{ width: 150, justifyContent: 'center' }}>{item.yonetici}</DataTable.Cell>
+              <DataTable.Cell style={{ width: 150, justifyContent: 'center' }}>{item.atananlar}</DataTable.Cell>
+              <DataTable.Cell style={{ width: 150, justifyContent: 'center' }}>{item.durum}</DataTable.Cell>
+              <DataTable.Cell style={{ width: 200, justifyContent: 'center', flexDirection: 'row' }}>
+                <IconButton icon="delete" iconColor={MD3Colors.error50} size={20} onPress={() => handleDelete(item.id ?? "")} />
+                <IconButton icon="upload" iconColor={MD3Colors.error50} size={20} onPress={async () => await pickDocument(item)} />
                 <IconButton
                   icon="looks"
                   iconColor={MD3Colors.error50}
                   size={20}
-                  onPress={() => {setFile(item.base64Data?{id:item.id,name:item.base64Data?.name,base64Data:item.base64Data?.data,mimeType:item.base64Data?.mimeType}:{id:"",name:"",mimeType:"",base64Data:""}); setFileVisible(!fileVisible);}}
+                  onPress={() => {
+                    setFile(item.fileBase64
+                      ? {
+                        id: item.id ?? "",
+                        name: item.fileBase64?.name,
+                        base64Data: item.fileBase64?.data,
+                        mimeType: item.fileBase64?.mimeType
+                      }
+                      : { id: "", name: "", mimeType: "", base64Data: "" });
+                    setFileVisible(!fileVisible);
+                  }}
                 />
               </DataTable.Cell>
             </DataTable.Row>
+
           ))}
 
         </DataTable>
+        <Modal visible={editModalVisible} onDismiss={() => setEditModalVisible(false)}>
+        <View style={{ flexDirection: 'row', justifyContent: 'flex-end' }}>
+    <IconButton
+      icon="close"
+      size={24}
+      onPress={() => setEditModalVisible(false)}
+    />
+  </View>
+          <Card style={{ margin: 16, padding: 16 }}>
+            <Text variant="titleLarge" style={{ marginBottom: 8 }}>
+              {currentEditField === 'sorun' ? 'Sorun Ekle' : 'Uygunsuzluk Ekle'}
+            </Text>
+
+            <TextInput
+              label="Teknisyen"
+              value={teknisyenAdi}
+              onChangeText={setTeknisyenAdi}
+              style={{ marginBottom: 8 }}
+            />
+            <TextInput
+              label="Açıklama"
+              value={aciklama}
+              onChangeText={setAciklama}
+              multiline
+              style={{ marginBottom: 8 }}
+            />
+
+          
+<Button
+  mode="contained"
+  onPress={() => {
+    if (teknisyenAdi && aciklama) {
+      if (editIndex !== null) {
+        const updated = [...editList];
+        updated[editIndex] = { teknisyen: teknisyenAdi, aciklama };
+        setEditList(updated);
+        setEditIndex(null);
+      } else {
+        setEditList([...editList, { teknisyen: teknisyenAdi, aciklama }]);
+      }
+
+      setTeknisyenAdi('');
+      setAciklama('');
+    }
+  }}
+>
+  {editIndex !== null ? 'Güncelle' : 'Ekle'}
+</Button>
+
+            <ScrollView style={{ maxHeight: 200, marginTop: 10 }}>
+  {editList.map((entry, index) => (
+    <Card key={index} style={{ marginVertical: 4, padding: 8 }}>
+      <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+        <View style={{ flex: 1 }}>
+          <Text>{entry.teknisyen}: {entry.aciklama}</Text>
+        </View>
+        <View style={{ flexDirection: 'row' }}>
+          <IconButton
+            icon="pencil"
+            size={20}
+            onPress={() => {
+              setTeknisyenAdi(entry.teknisyen);
+              setAciklama(entry.aciklama);
+              setEditIndex(index);
+            }}
+          />
+          <IconButton
+            icon="delete"
+            size={20}
+            onPress={() => {
+              const updated = editList.filter((_, i) => i !== index);
+              setEditList(updated);
+            }}
+          />
+        </View>
+      </View>
+    </Card>
+  ))}
+</ScrollView>
+            <Button
+              mode="contained-tonal"
+              style={{ marginTop: 12 }}
+              onPress={async () => {
+                if (editMontaj && currentEditField) {
+                  await updateDoc(doc(db, 'montajlar', editMontaj.id), {
+                    [currentEditField]: editList
+                  });
+                  setEditModalVisible(false);
+                  setEditList([]);
+                  fetchData(); 
+                }
+              }}
+            >
+              Kaydet
+            </Button>
+          </Card>
+        </Modal>
 
       </View>
     </ScrollView>
