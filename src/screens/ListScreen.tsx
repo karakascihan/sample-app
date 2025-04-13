@@ -1,9 +1,11 @@
 // 📁 screens/ListScreen.tsx
 import React, { useEffect, useState } from 'react';
-import { View, ScrollView, useWindowDimensions, Modal, Alert } from 'react-native';
+import { View, ScrollView, useWindowDimensions, Modal, Alert, KeyboardAvoidingView, Platform, Keyboard } from 'react-native';
 import { Card, Text, Button, DataTable, TextInput, IconButton, MD3Colors, Checkbox, Badge } from 'react-native-paper';
 import { getFirestore, collection, getDocs, deleteDoc, doc, addDoc, updateDoc } from 'firebase/firestore';
-import { app, storage } from '../firebase/firebaseConfig';
+import { app
+
+ } from '../firebase/firebaseConfig';
 import { useFocusEffect } from '@react-navigation/native';
 import * as FileSystem from "expo-file-system";
 import * as DocumentPicker from "expo-document-picker";
@@ -191,6 +193,11 @@ const ListScreen: React.FC = () => {
     }
     return result;
   };
+  const ClearState = ()=>{
+    setTeknisyenAdi('');
+    setAciklama('');
+    setEditIndex(null);
+  }
   const pickDocument = async (montaj: any) => {
     const result = await DocumentPicker.getDocumentAsync({ copyToCacheDirectory: true });
     if (result.canceled !== true) {
@@ -266,7 +273,7 @@ const ListScreen: React.FC = () => {
             <DataTable.Title style={{ width: 150, justifyContent: 'center' }}>
               <Text style={{ fontWeight: 'bold', fontSize: 16, textAlign: 'center' }}>Uygunsuzluk</Text>
             </DataTable.Title>
-          
+
             <DataTable.Title style={{ width: 150, justifyContent: 'center' }}>
               <Text style={{ fontWeight: 'bold', fontSize: 16, textAlign: 'center' }}>Proje Yöneticisi</Text>
             </DataTable.Title>
@@ -305,17 +312,18 @@ const ListScreen: React.FC = () => {
                   }
                 })()}
               </DataTable.Cell>
-              <DataTable.Cell style={{  width: 150,justifyContent: 'center' }}>
-                <View style={{ alignItems: 'center' }}>
-                  <IconButton
-                    icon="alert-circle-outline"
-                    size={20}
-                    onPress={() => {
+              <DataTable.Cell  onPress={() => {
+                      ClearState();
                       setCurrentEditField('sorun');
                       setEditMontaj(item);
                       setEditList(item.sorun || []);
                       setEditModalVisible(true);
-                    }}
+                    }} style={{ width: 150, justifyContent: 'center' }}>
+                <View style={{ alignItems: 'center' }  }>
+                  <IconButton
+                    icon="alert-circle-outline"
+                    size={20}
+                   
                   />
                   <Badge
                     style={{ position: 'absolute', top: 2, right: 2 }}
@@ -325,17 +333,18 @@ const ListScreen: React.FC = () => {
                   </Badge>
                 </View>
               </DataTable.Cell>
-              <DataTable.Cell style={{  width: 150,justifyContent: 'center' }}>
-                <View style={{ alignItems: 'center' }}>
-                  <IconButton
-                    icon="alert-octagon-outline"
-                    size={20}
-                    onPress={() => {
+              <DataTable.Cell onPress={() => {
+                       ClearState();
                       setCurrentEditField('uygunsuzluk');
                       setEditMontaj(item);
                       setEditList(item.uygunsuzluk || []);
                       setEditModalVisible(true);
-                    }}
+                    }} style={{ width: 150, justifyContent: 'center' }}>
+                <View style={{ alignItems: 'center' }}>
+                  <IconButton
+                    icon="alert-octagon-outline"
+                    size={20}
+                    
                   />
                   <Badge
                     style={{ position: 'absolute', top: 2, right: 2 }}
@@ -352,7 +361,7 @@ const ListScreen: React.FC = () => {
                 <IconButton icon="delete" iconColor={MD3Colors.error50} size={20} onPress={() => handleDelete(item.id ?? "")} />
                 <IconButton icon="upload" iconColor={MD3Colors.error50} size={20} onPress={async () => await pickDocument(item)} />
                 <IconButton
-                  icon="looks"
+                  icon="file-document"
                   iconColor={MD3Colors.error50}
                   size={20}
                   onPress={() => {
@@ -373,14 +382,19 @@ const ListScreen: React.FC = () => {
           ))}
 
         </DataTable>
-        <Modal visible={editModalVisible} onDismiss={() => setEditModalVisible(false)}>
-        <View style={{ flexDirection: 'row', justifyContent: 'flex-end' }}>
-    <IconButton
-      icon="close"
-      size={24}
-      onPress={() => setEditModalVisible(false)}
-    />
-  </View>
+        <Modal visible={editModalVisible}  onDismiss={() => setEditModalVisible(false)}>
+        <KeyboardAvoidingView   behavior={Platform.OS === "ios" ? "padding" : "height"}
+    style={{ flex: 1 }}>
+          
+          <View  style={{ flexDirection: 'row', justifyContent: 'flex-end' ,zIndex:9999}}>
+            <IconButton
+                  icon="close-circle"
+                  iconColor={MD3Colors.error40}
+              size={24}
+              onPress={() => setEditModalVisible(false)}
+             
+            />
+          </View>
           <Card style={{ margin: 16, padding: 16 }}>
             <Text variant="titleLarge" style={{ marginBottom: 8 }}>
               {currentEditField === 'sorun' ? 'Sorun Ekle' : 'Uygunsuzluk Ekle'}
@@ -399,78 +413,83 @@ const ListScreen: React.FC = () => {
               multiline
               style={{ marginBottom: 8 }}
             />
+            <Button
+              mode="contained"
+              onPress={() => {
+                if (teknisyenAdi && aciklama) {
+                  if (editIndex !== null) {
+                    const updated = [...editList];
+                    updated[editIndex] = { teknisyen: teknisyenAdi, aciklama };
+                    setEditList(updated);
+                    setEditIndex(null);
+                  } else {
+                    setEditList([...editList, { teknisyen: teknisyenAdi, aciklama }]);
+                  }
+                  setTeknisyenAdi('');
+                  setAciklama('');
+                }
+              }}
+            >
+              {editIndex !== null ? 'Güncelle' : 'Ekle'}
+            </Button>
 
-          
-<Button
-  mode="contained"
-  onPress={() => {
-    if (teknisyenAdi && aciklama) {
-      if (editIndex !== null) {
-        const updated = [...editList];
-        updated[editIndex] = { teknisyen: teknisyenAdi, aciklama };
-        setEditList(updated);
-        setEditIndex(null);
-      } else {
-        setEditList([...editList, { teknisyen: teknisyenAdi, aciklama }]);
-      }
-
-      setTeknisyenAdi('');
-      setAciklama('');
-    }
-  }}
->
-  {editIndex !== null ? 'Güncelle' : 'Ekle'}
-</Button>
-
-            <ScrollView style={{ maxHeight: 200, marginTop: 10 }}>
-  {editList.map((entry, index) => (
-    <Card key={index} style={{ marginVertical: 4, padding: 8 }}>
-      <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-        <View style={{ flex: 1 }}>
-          <Text>{entry.teknisyen}: {entry.aciklama}</Text>
-        </View>
-        <View style={{ flexDirection: 'row' }}>
-          <IconButton
-            icon="pencil"
-            size={20}
-            onPress={() => {
-              setTeknisyenAdi(entry.teknisyen);
-              setAciklama(entry.aciklama);
-              setEditIndex(index);
-            }}
-          />
-          <IconButton
-            icon="delete"
-            size={20}
-            onPress={() => {
-              const updated = editList.filter((_, i) => i !== index);
-              setEditList(updated);
-            }}
-          />
-        </View>
-      </View>
-    </Card>
-  ))}
-</ScrollView>
+            <ScrollView  style={{ maxHeight: 200, marginTop: 10 }}>
+              {editList.map((entry, index) => (
+                <Card key={index} style={{ marginVertical: 4, padding: 8 }}>
+                  <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <View style={{ flex: 1 }}>
+                      <Text>{entry.teknisyen}: {entry.aciklama}</Text>
+                    </View>
+                    <View style={{ flexDirection: 'row' }}>
+                      <IconButton
+                        icon="pencil"
+                        size={20}
+                        onPress={() => {
+                          setTeknisyenAdi(entry.teknisyen);
+                          setAciklama(entry.aciklama);
+                          setEditIndex(index);
+                        }}
+                      />
+                      <IconButton
+                        icon="delete"
+                        size={20}
+                        onPress={() => {
+                          const updated = editList.filter((_, i) => i !== index);
+                          setEditList(updated);
+                        }}
+                      />
+                    </View>
+                  </View>
+                </Card>
+              ))}
+            </ScrollView>
             <Button
               mode="contained-tonal"
               style={{ marginTop: 12 }}
               onPress={async () => {
-                if (editMontaj && currentEditField) {
-                  await updateDoc(doc(db, 'montajlar', editMontaj.id), {
-                    [currentEditField]: editList
-                  });
-                  setEditModalVisible(false);
-                  setEditList([]);
-                  fetchData(); 
+                try {
+                  if (editMontaj && currentEditField) {
+                    await updateDoc(doc(db, 'montajlar', editMontaj.id), {
+                      [currentEditField]: editList
+                    });
+                    setEditList([]);
+                    await fetchData();
+                    Alert.alert("Başarılı", "Kayıt Başarıyla Gerçekleşti");
+                    setEditModalVisible(false);
+
+                  }
+
+                } catch (error: any) {
+                  Alert.alert("Kayıt Ekleme Hatası", error.message);
                 }
+                
               }}
             >
               Kaydet
             </Button>
           </Card>
+        </KeyboardAvoidingView>
         </Modal>
-
       </View>
     </ScrollView>
   );

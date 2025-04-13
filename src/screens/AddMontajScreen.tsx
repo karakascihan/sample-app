@@ -12,17 +12,7 @@ interface Props {
 const AddMontajScreen: React.FC = (props: Props) => {
   const [showStartPicker, setShowStartPicker] = useState<boolean>(false);
   const [showEndPicker, setShowEndPicker] = useState<boolean>(false);
-  
   const db = getFirestore(app);
-  const getDocumentById = async () => {
-    const docRef = doc(db, "montajlar", props.id ?? "");
-    const docSnap = await getDoc(docRef);
-    console.log(docSnap);
-  }
-  useEffect(() => {
-
-  }, [])
-
   const [form, setForm] = useState<Montaj>({
     projeNo: '',
     baslik: '',
@@ -72,7 +62,7 @@ const AddMontajScreen: React.FC = (props: Props) => {
       <TextInput label="Proje No" value={form.projeNo} onChangeText={(v) => handleChange('projeNo', v)} />
       <TextInput label="Başlık" value={form.baslik} onChangeText={(v) => handleChange('baslik', v)} />
       <TextInput label="Parça No" value={form.parcaNo} onChangeText={(v) => handleChange('parcaNo', v)} />
-      <TextInput label="Başlangıç Tarihi" value={form.baslangic.toLocaleDateString()} readOnly right={<TextInput.Icon onPress={() => setShowStartPicker(true)} icon="eye" />}  placeholder="12 Şubat 2025" />
+      <TextInput label="Başlangıç Tarihi" value={form.baslangic.toLocaleDateString()} readOnly right={<TextInput.Icon onPress={() => setShowStartPicker(true)} icon="update" />} />
       {
         showStartPicker?
         <DateTimePicker value={form.baslangic} onChange={(v, d) =>{ handleChange('baslangic', d); setShowStartPicker(false);}} /> :null
@@ -81,10 +71,7 @@ const AddMontajScreen: React.FC = (props: Props) => {
         showEndPicker ?
         <DateTimePicker value={form.bitis} onChange={(v, d) => {handleChange('bitis', d); setShowEndPicker(false);}} /> :null
       }
-      <TextInput label="Bitiş Tarihi" value={form.bitis.toLocaleDateString()} readOnly right={<TextInput.Icon onPress={() => setShowEndPicker(true)} icon="eye" />}placeholder="12 Nisan 2025" />
-      <TextInput label="Uygunsuzluk" keyboardType="numeric" value={form.uygunsuzluk.toString()} onChangeText={(v) => handleChange('uygunsuzluk', v)} />
-      <TextInput label="Sorun" keyboardType="numeric" value={form.sorun.toString()} onChangeText={(v) => handleChange('sorun', v)} />
-
+      <TextInput label="Bitiş Tarihi" value={form.bitis.toLocaleDateString()} readOnly right={<TextInput.Icon onPress={() => setShowEndPicker(true)} icon="update" />}/>
       <View style={{ marginVertical: 12 }}>
         <Text style={{ marginBottom: 4 }}>Durum:</Text>
         <RadioButton.Group onValueChange={(v) => handleChange('durum', v)} value={form.durum}>
